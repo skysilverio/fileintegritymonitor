@@ -1,8 +1,5 @@
 # 🛡️ Real-Time File Integrity Monitor (FIM)
 
-### **Developed by Skyler Silverio**
-*IT Professional | Cybersecurity Specialist | M365 Administrator*
-
 ---
 
 ## 📌 Project Overview
@@ -17,6 +14,37 @@ This tool maps directly to industry-standard security controls, demonstrating ho
 * **ISO/IEC 27001:** Aligns with **Annex A.12.1.2** (Change Management) and **A.12.4.1** (Event Logging).
 * **PCI-DSS (Requirement 11.5):** Addresses the specific mandate for deploying file-integrity monitoring to alert personnel to unauthorized modifications of critical system files.
 * **SOC2 Integrity:** Validates the **Processing Integrity** principle by ensuring data is not altered in an unauthorized manner.
+
+---
+
+## 🔍 Core Code Breakdown
+
+The script is organized into distinct modules to ensure a separation of concerns between file scanning, security processing, and alerting.
+
+### 1. The Hashing Engine (`calculate_hash`)
+This function is the "digital fingerprint" generator. It reads files in small 4KB chunks (`4096 bytes`) to ensure that even massive files can be hashed without crashing the system's memory (RAM). It returns a SHA-256 hex digest.
+
+### 2. The Baseline Builder (`file_scan`)
+The "Initial State" generator. 
+- It recursively walks through the target directory.
+- It maps every file path to its specific hash.
+- It saves this mapping into `baseline.json` using `indent=4` to keep the database human-readable.
+
+### 3. The Security Handler (`FIMHandler`)
+This class inherits from `watchdog.events.FileSystemEventHandler`. It acts as the "Brain" of the monitor:
+- **`on_modified`**: Triggered when a file's content is changed.
+- **`on_created/on_deleted`**: Detects when files are added or removed from the sensitive directory.
+- **Filtering Logic**: Contains the critical `if` statements that ignore the `baseline.json` file to prevent recursive alert loops.
+
+### 4. The Alerting Module (`send_email_alert`)
+This function manages the outward communication. It uses the `EmailMessage` object to structure the report and `smtplib` to establish a secure TLS connection with the mail server. It specifically pulls credentials from the `.env` file to maintain security best practices.
+
+### 5. The Control Room (`if __name__ == "__main__":`)
+The script's entry point. It handles the startup sequence:
+1. Loads environment variables.
+2. Checks for an existing baseline.
+3. Initializes the **Observer** (the eyes) and the **Handler** (the brain).
+4. Maintains an infinite loop to keep the monitor active until a manual interrupt (Ctrl+C) is received.
 
 ---
 
